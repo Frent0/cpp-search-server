@@ -11,7 +11,7 @@
 using namespace std;
 
 const int MAX_RESULT_DOCUMENT_COUNT = 5;
-const double  MinimumComparison = 1e-10;
+const double  MINIMUM_COMPARISION = 1e-10;
 
 string ReadLine() {
     string words;
