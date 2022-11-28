@@ -200,6 +200,7 @@ private:
     double IDF(const string& word) const {
         return log(GetDocumentCount() * 1.0 / static_cast<size_t>(word_to_document_freqs_.at(word).size()));
     }
+    
     template<typename RequiredRequest>
     vector<Document> FindAllDocuments(const Query& query_words, RequiredRequest values) const {
         vector<Document> matched_documents;
