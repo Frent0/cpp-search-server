@@ -84,7 +84,7 @@ public:
 
         sort(matched_documents.begin(), matched_documents.end(),
             [](const Document& lhs, const Document& rhs) {
-                if (abs(lhs.relevance - rhs.relevance) < MinimumComparison) {
+                if (abs(lhs.relevance - rhs.relevance) < MINIMUM_COMPARISION) {
                     return lhs.rating > rhs.rating;
                 }
                 else {
