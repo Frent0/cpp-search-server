@@ -70,8 +70,6 @@ enum class DocumentStatus {
 class SearchServer {
 public:
 
-    inline static constexpr int INVALID_DOCUMENT_ID = -1;
-
     SearchServer() = default;
 
     explicit SearchServer(const string& stop_words_text) {
