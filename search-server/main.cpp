@@ -70,6 +70,8 @@ enum class DocumentStatus {
 class SearchServer {
 public:
 
+    inline static constexpr int INVALID_DOCUMENT_ID = -1;
+
     SearchServer() = default;
 
     explicit SearchServer(const string& stop_words_text) {
@@ -128,22 +130,9 @@ public:
 
     template <typename DocumentPredicate>
     vector<Document> FindTopDocuments(const string& raw_query, DocumentPredicate document_predicate) const {
-        vector<Document> DocumentsFound;
-        for (const string& word : SplitIntoWords(raw_query)) {
-            if (!IsValidWord(word)) {
-                throw invalid_argument("В словах поискового запроса есть недопустимые символы!");
-            }
-        }
-
-        for (const string& word : SplitIntoWords(raw_query)) {
-            if (!CorrectRequest(word)) {
-                throw invalid_argument("Проблема поискового запроса с отрицательными словами!");
-            }
-        }
 
         const Query query_words = ParseQuery(raw_query);
-
-        DocumentsFound = FindAllDocuments(query_words, document_predicate);
+        vector<Document> DocumentsFound = FindAllDocuments(query_words, document_predicate);
 
         sort(DocumentsFound.begin(), DocumentsFound.end(),
             [](const Document& lhs, const Document& rhs) {
@@ -157,6 +146,7 @@ public:
         if (DocumentsFound.size() > MAX_RESULT_DOCUMENT_COUNT) {
             DocumentsFound.resize(MAX_RESULT_DOCUMENT_COUNT);
         }
+
         return DocumentsFound;
     }
 
@@ -181,18 +171,6 @@ public:
     }
 
     tuple<vector<string>, DocumentStatus> MatchDocument(const string& raw_query, int document_id) const {
-
-        for (const string& word : SplitIntoWords(raw_query)) {
-            if (!IsValidWord(word)) {
-                throw invalid_argument("В словах поискового запроса есть недопустимые символы!");
-            }
-        }
-
-        for (const string& word : SplitIntoWords(raw_query)) {
-            if (!CorrectRequest(word)) {
-                throw invalid_argument("Проблема поискового запроса с отрицательными словами!");
-            }
-        }
 
         const Query query_word = ParseQuery(raw_query);
         vector<string> words;
@@ -238,23 +216,16 @@ private:
         set<string> plus_word;
     };
 
+    struct QueryWord {
+        string word;
+        bool minus_word;
+        bool stop_word;
+    };
+
     static bool IsValidWord(const string& word) {
         return none_of(word.begin(), word.end(), [](char c) {
             return c >= '\0' && c < ' ';
             });
-    }
-
-    static bool CorrectRequest(const string& word) {
-        if (word.empty()) {
-            return false;
-        }
-        if (word == "-"s) {
-            return false;
-        }
-        if (word[0] == '-' && word[1] == '-') {
-            return false;
-        }
-        return true;
     }
 
     bool IsStopWord(const string& word) const {
@@ -271,15 +242,40 @@ private:
         return words;
     }
 
+    QueryWord ParseQueryWord(string word) const {
+
+        if (word.empty()) {
+            throw invalid_argument("Проблема в отсутствие слов после символа <минус> в поисковом запросе!");
+        }
+
+        if ((word[0] == '-' && word[1] == '-') || word == "-"s) {
+            throw invalid_argument("Проблема поискового запроса с отрицательными словами!");
+        }
+        if (!IsValidWord(word)) {
+            throw invalid_argument("Проблема с наличие недопустимых символов!");
+        }
+
+        bool is_minus_word = false;
+
+        if (word[0] == '-') {
+            word = word.substr(1);
+            is_minus_word = true;
+        }
+
+        return { word,is_minus_word,IsStopWord(word) };
+    }
+
     Query ParseQuery(const string& text) const {
         Query query_words;
         for (string& word : SplitIntoWordsNoStop(text)) {
-            if (word[0] == '-') {
-                word = word.substr(1);
-                query_words.minus_word.insert(word);
-            }
-            else {
-                query_words.plus_word.insert(word);
+            QueryWord qyery_word = ParseQueryWord(word);
+            if (!qyery_word.stop_word) {
+                if (qyery_word.minus_word) {
+                    query_words.minus_word.insert(qyery_word.word);
+                }
+                else {
+                    query_words.plus_word.insert(qyery_word.word);
+                }
             }
         }
         return query_words;
