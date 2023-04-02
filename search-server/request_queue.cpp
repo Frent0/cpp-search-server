@@ -1,22 +1,27 @@
 #include "request_queue.h"
 
-RequestQueue::RequestQueue(const SearchServer& search_server) : server(search_server), empty_result(0), time(0) {
+RequestQueue::RequestQueue(const SearchServer& search_server) 
+    : server(search_server), empty_result(0), time(0) {
 }
 
+#include "request_queue.h"
+
+
 std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query, DocumentStatus status) {
-    auto result_search = server.FindTopDocuments(raw_query, status);
-    Add_Query_Result(result_search.size());
-    return result_search;
+    const auto result = server.FindTopDocuments(raw_query, status);
+    Add_Query_Result(static_cast<int>(result.size()));
+    return result;
 }
+
 std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query) {
-    auto result_search = server.FindTopDocuments(raw_query);
-    Add_Query_Result(result_search.size());
-    return result_search;
+    const auto result = server.FindTopDocuments(raw_query);
+    Add_Query_Result(static_cast<int>(result.size()));
+    return result;
 }
 
 int RequestQueue::GetNoResultRequests() const {
     return empty_result;
-};
+}
 
 void RequestQueue::Add_Query_Result(const size_t& result_search_Size) {
 
