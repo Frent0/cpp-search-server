@@ -61,7 +61,7 @@ std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDoc
         throw std::invalid_argument("Invalid ID"s);
     }
 
-    const Query query = ParseQuery(raw_query);
+    const Query query = ParseQuery(raw_query,true);
 
     std::vector<std::string_view> matched_words;
     for (const std::string_view word : query.minus_words) {
@@ -90,7 +90,7 @@ std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDoc
         throw std::invalid_argument("Invalid ID"s);
     }
 
-    const Query& query = ParParseQuery(raw_query);
+    const Query& query = ParseQuery(raw_query);
     const auto& words = document_to_word_freqs_.at(document_id);
 
     if (std::any_of(query.minus_words.begin(), query.minus_words.end(), [&words]
@@ -195,7 +195,7 @@ SearchServer::QueryWord SearchServer::ParseQueryWord(std::string_view word) cons
 }
 
 
-SearchServer::Query SearchServer::ParseQuery(std::string_view text) const {
+SearchServer::Query SearchServer::ParseQuery(std::string_view text,bool sort) const {
     Query result;
 
     for (auto word : SplitIntoWordsView(text)) {
@@ -209,31 +209,16 @@ SearchServer::Query SearchServer::ParseQuery(std::string_view text) const {
             }
         }
     }
+    if (sort) {
 
-    std::sort(result.plus_words.begin(), result.plus_words.end());
-    auto not_unique_plus_word = std::unique(result.plus_words.begin(), result.plus_words.end());
-    result.plus_words.resize(std::distance(result.plus_words.begin(), not_unique_plus_word));
+        std::sort(result.plus_words.begin(), result.plus_words.end());
+        auto not_unique_plus_word = std::unique(result.plus_words.begin(), result.plus_words.end());
+        result.plus_words.resize(std::distance(result.plus_words.begin(), not_unique_plus_word));
 
-    std::sort(result.minus_words.begin(), result.minus_words.end());
-    auto not_unique_minus_word = std::unique(result.minus_words.begin(), result.minus_words.end());
-    result.minus_words.resize(std::distance(result.minus_words.begin(), not_unique_minus_word));
+        std::sort(result.minus_words.begin(), result.minus_words.end());
+        auto not_unique_minus_word = std::unique(result.minus_words.begin(), result.minus_words.end());
+        result.minus_words.resize(std::distance(result.minus_words.begin(), not_unique_minus_word));
 
-    return result;
-}
-
-SearchServer::Query SearchServer::ParParseQuery(std::string_view text) const {
-    Query result;
-
-    for (auto word : SplitIntoWordsView(text)) {
-        const QueryWord& query_word = ParseQueryWord(word);
-        if (!query_word.is_stop) {
-            if (query_word.is_minus) {
-                result.minus_words.push_back(query_word.data);
-            }
-            else {
-                result.plus_words.push_back(query_word.data);
-            }
-        }
     }
 
     return result;
